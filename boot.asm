@@ -18,7 +18,24 @@ TestExtension:
     cmp bx,0xaa55   ;bios returns value aa55 in bx on success
     jne NotSupported
 
-PrintMessage:
+LoadLoader:
+    mov si,ReadPacket ;structure
+    mov word[si],0x10 ;structure length - 16 bytes
+    mov word[si+2],5 ;number of sectors
+    mov word[si+4],0x7e00 ;offset
+    mov word[si+6],0 ;segment
+    mov dword[si+8],1 ;sector 1 (lba), sector 2(chs) - address low
+    mov dword[si+0xc],0 ;address high
+    mov dl,[DriveId]
+    mov ah,0x42
+    int 0x13
+    jc ReadError
+
+    mov dl,[DriveId]
+    jmp 0x7e00
+
+NotSupported:
+ReadError:
     mov ah,0x13
     mov al,1
     mov bx,0xa
@@ -27,13 +44,13 @@ PrintMessage:
     mov cx,MessageLen
     int 0x10
 
-NotSupported:
 End:
     hlt
     jmp End ;permanently halt program
 
+ReadPacket: times 16 db 0
 DriveId:    db 0
-Message:    db "Disk extension is supported"
+Message:    db "Error occured in boot process"
 MessageLen: equ $-Message   ; dynamic length
 
 times (0x1be - ($-$$)) db 0
