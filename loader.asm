@@ -17,6 +17,40 @@ Start:
     test edx,(1<<26) ;1GB page support bit
     jz NotSupported
 
+LoadKernel:
+    mov si,ReadPacket ;structure
+    mov word[si],0x10 ;structure length - 16 bytes
+    mov word[si+2],100 ;number of sectors
+    mov word[si+4],0 ;offset
+    mov word[si+6],0x1000 ;segment - 0x10000
+    mov dword[si+8],6 ;7th sector (lba is 0 indexed)
+    mov dword[si+0xc],0 ;address high
+    mov dl,[DriveId]
+    mov ah,0x42 ;extended read (lba mode)
+    int 0x13
+    jc ReadError
+
+GetMemInfoStart:
+    mov eax,0xe820
+    mov edx,0x534d4150 ;ascii code for smap
+    mov ecx,20  ;memory block size 20 bytes
+    mov edi,0x9000
+    xor ebx,ebx
+    int 0x15
+    jc NotSupported ;cf set on first call means service not available
+
+GetMemInfo:
+    add edi,20 ;next memory block 20 bytes after
+    mov eax,0xe820
+    mov edx,0x534d4150
+    mov ecx,20
+    int 0x15
+    jc GetMemDone ;if cf 0, we got all memory blocks
+
+    test ebx,ebx ;if ebx not 0, fetch next memory block
+    jnz GetMemInfo
+
+GetMemDone:
     mov ah,0x13
     mov al,1
     mov bx,0xa
@@ -25,11 +59,13 @@ Start:
     mov cx,MessageLen
     int 0x10
 
+ReadError:
 NotSupported:
 End:
     hlt
     jmp End
 
 DriveId:    db 0
-Message:    db "long mode is supported"
+Message:    db "Fetching memory info done"
 MessageLen: equ $-Message   ; dynamic length
+ReadPacket: times 16 db 0
