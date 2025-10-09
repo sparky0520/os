@@ -73,6 +73,26 @@ SetA20LineDone:
     mov cx,MessageLen
     int 0x10
 
+SetVideoMode:
+    mov ax,0x3
+    int 0x10
+
+    mov si,Message
+    mov ax,0xb800
+    mov es,ax
+    xor di,di
+    mov cx,MessageLen
+
+PrintMessage:
+    mov al,[si]
+    mov [es:di],al
+    mov byte[es:di+1],0xa ;bright green text
+
+    add di,2
+    add si,1
+    loop PrintMessage
+
+NoVesa:
 ReadError:
 NotSupported:
 End:
@@ -80,6 +100,6 @@ End:
     jmp End
 
 DriveId:    db 0
-Message:    db "A20 line is enabled"
+Message:    db "Video mode (text mode) set"
 MessageLen: equ $-Message   ; dynamic length
 ReadPacket: times 16 db 0
