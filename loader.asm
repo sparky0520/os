@@ -51,6 +51,20 @@ GetMemInfo:
     jnz GetMemInfo
 
 GetMemDone:
+TestA20:
+    mov ax,0xffff
+    mov es,ax
+    mov word[ds:0x7c00],0xa200
+    cmp word[es:0x7c10],0xa200
+    jne SetA20LineDone
+    mov word[ds:0x7c00],0xb200 ;could be 0x107c00 might have 0xa200 originally
+    cmp word[es:0x7c10],0xb200 ;double checking here
+    je End
+
+SetA20LineDone:
+    xor ax,ax
+    mov es,ax
+
     mov ah,0x13
     mov al,1
     mov bx,0xa
@@ -66,6 +80,6 @@ End:
     jmp End
 
 DriveId:    db 0
-Message:    db "Fetching memory info done"
+Message:    db "A20 line is enabled"
 MessageLen: equ $-Message   ; dynamic length
 ReadPacket: times 16 db 0
